@@ -5,10 +5,10 @@ import re
 from google import genai
 
 # ===== CONFIG =====
-GEMINI_API_KEY = "AIzaSyA6EcV9vQS4H9xwwvY1yrDS3mWM1UIFuMc"
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 GEMINI_MODEL = "gemini-2.5-flash"
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -673,4 +673,5 @@ if st.session_state.pending:
     st.session_state.pending = None
     send_message(msg)
     st.session_state.loading = False
+
     st.rerun()
