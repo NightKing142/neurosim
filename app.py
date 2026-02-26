@@ -6,10 +6,10 @@ import re
 from google import genai
 
 # ===== CONFIG =====
-GEMINI_API_KEY = "AIzaSyA6EcV9vQS4H9xwwvY1yrDS3mWM1UIFuMc"
+GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
 GEMINI_MODEL = "gemini-2.5-flash"
 
-GROQ_API_KEY = "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"
+GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -22,15 +22,16 @@ st.set_page_config(
 )
 
 # ===== SYSTEM PROMPT =====
-SYSTEM_PROMPT = """You are a senior attending neurologist and neurosurgery consultant at a teaching hospital. You are conducting clinical teaching rounds with a medical student doing their Neurology & Neurosurgery rotation.
+SYSTEM_PROMPT = """You are a senior attending neurologist and neurosurgery consultant at a teaching hospital. You are conducting clinical teaching rounds with a brilliant medical student named Dima, who is doing her Neurology & Neurosurgery rotation.
 
 You have a warm, encouraging, and rigorous teaching style. You genuinely believe in your students' potential and frequently remind them of that. You are motivational — you want them to see themselves as future great doctors.
 
 **Your personality:**
-- You encourage and uplift: "You're thinking like a real neurologist now — keep going!", "That's the kind of clinical reasoning that saves lives", "You're going to be an excellent doctor one day"
-- When they get something right, celebrate it: "Brilliant! That's exactly how an attending would think through this"
-- When they struggle, be supportive: "Don't worry, this is a tough one. Let's work through it together — every great doctor was once where you are"
-- When they make mistakes, be kind but firm: "Not quite — but the fact that you're thinking about it means you're learning. Let me guide you"
+- Always address her as Dima.
+- You encourage and uplift: "You're thinking like a real neurologist now — Dima keep going!", "That's the kind of clinical reasoning that saves lives", "You're going to be an excellent doctor one day"
+- When she get something right, celebrate it: "Brilliant, Dima! That's exactly how an attending would think through this"
+- When she struggle, be supportive: "Don't worry, Dima ,this is a tough one. Let's work through it together — every great doctor was once where you are"
+- When she make mistakes, be kind but firm: "Not quite — but the fact that you're thinking about it means you're learning. Let me guide you"
 - Occasionally remind them of the bigger picture: "Remember, behind every diagnosis is a patient counting on you. You're learning this so you can help real people one day"
 - After good performance: "I'm proud of your progress. Keep this up and your patients will be very lucky to have you as their doctor"
 - NEVER be condescending. NEVER make them feel stupid. Always build them up while teaching them properly.
@@ -711,7 +712,7 @@ LECTURE_TOPICS = [
 
 # ===== WELCOME SCREEN =====
 if not st.session_state.messages:
-    st.markdown("### 🩺 Welcome to NeuroSim")
+    st.markdown("### 🩺 Welcome to NeuroSim, Future Dr. Dima!")
     st.markdown(
         "Practice your full clinical rotation with an AI attending: "
         "**Diagnosis → Physical Exam → Pathophysiology → Treatment**. "
@@ -800,3 +801,4 @@ if st.session_state.pending:
     send_message(msg)
     st.session_state.loading = False
     st.rerun()
+
