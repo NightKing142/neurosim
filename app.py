@@ -589,7 +589,7 @@ def send_message(user_input: str):
         except Exception as e:
             err = str(e).lower()
             # Rate limit or quota exceeded → fall back to Groq
-            if "429" in err or "403" in err or "quota" in err or "rate" in err or "resource" in err or "permission" in err or "leaked" in err:
+            if any(x in err for x in ["429", "403", "400", "quota", "rate", "resource", "permission", "leaked", "expired", "invalid"]):
                 if st.session_state.groq_key:
                     st.session_state.provider = "groq"
                     # Remove the history entry we just added to Gemini
@@ -632,18 +632,43 @@ def render_mermaid(mermaid_code: str):
     mermaid_code = mermaid_code.replace('\u2018', "'").replace('\u2019', "'")
     # Remove any leading/trailing backticks the AI might have added
     mermaid_code = mermaid_code.strip('`').strip()
-    # Fix parentheses inside square bracket labels — mermaid treats () as node shape
-    # Turn A[Text (with parens)] into A["Text (with parens)"]
-    def quote_label(m):
-        content = m.group(1)
-        if '(' in content or ')' in content:
-            content = content.replace('"', "'")
-            return f'["{content}"]'
-        return m.group(0)
-    mermaid_code = re.sub(r'\[([^\]"]+)\]', quote_label, mermaid_code)
 
-    # Escape for safe HTML embedding
-    safe_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    is_mindmap = mermaid_code.strip().startswith('mindmap')
+
+    if is_mindmap:
+        # Mindmaps: parentheses in text lines break rendering
+        # Replace (text) with [text] in content lines (not the root(()) line)
+        lines = mermaid_code.split('\n')
+        fixed_lines = []
+        for line in lines:
+            stripped = line.strip()
+            if stripped.startswith('root(') or stripped == 'mindmap':
+                fixed_lines.append(line)
+            else:
+                # Replace parentheses with dashes in content text
+                fixed_lines.append(line.replace('(', ' - ').replace(')', ''))
+        mermaid_code = '\n'.join(fixed_lines)
+    else:
+        # Flowcharts: fix parentheses inside square bracket labels
+        # Turn A[Text (with parens)] into A["Text (with parens)"]
+        def quote_bracket_label(m):
+            content = m.group(1)
+            if '(' in content or ')' in content:
+                content = content.replace('"', "'")
+                return f'["{content}"]'
+            return m.group(0)
+        mermaid_code = re.sub(r'\[([^\]"]+)\]', quote_bracket_label, mermaid_code)
+
+        # Fix parentheses inside edge labels |text|
+        def quote_edge_label(m):
+            content = m.group(1)
+            if '(' in content or ')' in content:
+                content = content.replace('(', '').replace(')', '')
+            return f'|{content}|'
+        mermaid_code = re.sub(r'\|([^|]+)\|', quote_edge_label, mermaid_code)
+
+    # For the fallback display, HTML-escape
+    fallback_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     html_content = f"""
     <style>
@@ -689,13 +714,13 @@ def render_mermaid(mermaid_code: str):
 
     <div id="mermaid-container" onclick="openFullscreen()">
         <pre class="mermaid" style="background: transparent;">
-{safe_code}
+{mermaid_code}
         </pre>
         <div id="mermaid-hint">🔍 Click to view full size</div>
     </div>
 
     <div id="mermaid-fallback" style="display: none; background: #1a2235; border: 1px solid #2a3a52; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">
-{safe_code}
+{fallback_code}
     </div>
 
     <script type="module">
