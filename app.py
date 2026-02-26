@@ -636,8 +636,6 @@ def render_mermaid(mermaid_code: str):
     is_mindmap = mermaid_code.strip().startswith('mindmap')
 
     if is_mindmap:
-        # Mindmaps: parentheses in text lines break rendering
-        # Replace (text) with [text] in content lines (not the root(()) line)
         lines = mermaid_code.split('\n')
         fixed_lines = []
         for line in lines:
@@ -645,29 +643,41 @@ def render_mermaid(mermaid_code: str):
             if stripped.startswith('root(') or stripped == 'mindmap':
                 fixed_lines.append(line)
             else:
-                # Replace parentheses with dashes in content text
                 fixed_lines.append(line.replace('(', ' - ').replace(')', ''))
         mermaid_code = '\n'.join(fixed_lines)
     else:
-        # Flowcharts: fix parentheses inside square bracket labels
-        # Turn A[Text (with parens)] into A["Text (with parens)"]
-        def quote_bracket_label(m):
+        # 1. Fix [] labels: handle parens and stray double quotes
+        def fix_bracket(m):
             content = m.group(1)
+            if content.startswith('"') and content.endswith('"'):
+                return m.group(0)
             if '(' in content or ')' in content:
                 content = content.replace('"', "'")
                 return f'["{content}"]'
-            return m.group(0)
-        mermaid_code = re.sub(r'\[([^\]"]+)\]', quote_bracket_label, mermaid_code)
+            if '"' in content:
+                content = content.replace('"', "'")
+            return f'[{content}]'
+        mermaid_code = re.sub(r'\[([^\]]*)\]', fix_bracket, mermaid_code)
 
-        # Fix parentheses inside edge labels |text|
-        def quote_edge_label(m):
+        # 2. Fix {} diamond labels: parens break parsing
+        def fix_diamond(m):
+            prefix = m.group(1)
+            content = m.group(2)
+            if '(' in content or ')' in content:
+                content = content.replace('(', '- ').replace(')', '')
+            if '"' in content:
+                content = content.replace('"', "'")
+            return f'{prefix}{{{content}}}'
+        mermaid_code = re.sub(r'(\w+)\{([^}]+)\}', fix_diamond, mermaid_code)
+
+        # 3. Fix || edge labels: parens break parsing
+        def fix_edge(m):
             content = m.group(1)
             if '(' in content or ')' in content:
                 content = content.replace('(', '').replace(')', '')
             return f'|{content}|'
-        mermaid_code = re.sub(r'\|([^|]+)\|', quote_edge_label, mermaid_code)
+        mermaid_code = re.sub(r'\|([^|]+)\|', fix_edge, mermaid_code)
 
-    # For the fallback display, HTML-escape
     fallback_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     html_content = f"""
@@ -811,7 +821,7 @@ LECTURE_TOPICS = [
 
 # ===== WELCOME SCREEN =====
 if not st.session_state.messages:
-    st.markdown("### 🩺 Welcome to NeuroSim, Future Dr. Dima!")
+    st.markdown("### 🩺 Welcome to NeuroSim")
     st.markdown(
         "Practice your full clinical rotation with an AI attending: "
         "**Diagnosis → Physical Exam → Pathophysiology → Treatment**. "
