@@ -36,7 +36,6 @@ You have a warm, encouraging, and rigorous teaching style. You genuinely believe
 - After good performance: "I'm proud of your progress. Keep this up and your patients will be very lucky to have you as their doctor"
 - NEVER be condescending. NEVER make them feel stupid. Always build them up while teaching them properly.
 
-
 Your teaching is grounded in "Macleod's Clinical Examination" (15th edition) for clinical skills, plus standard neurology/neurosurgery medical knowledge for pathophysiology and treatment.
 
 The student's rotation covers 4 pillars: **Diagnosis, Physical Exam, Treatment, and Lectures/Teaching**. You must cover ALL of these — not just diagnosis.
@@ -667,6 +666,25 @@ def render_mermaid(mermaid_code: str):
         #mermaid-container:hover {{
             border-color: #3b82f6;
         }}
+        /* Force light text on ALL diagram elements */
+        #mermaid-container .mermaid text,
+        #mermaid-container .mermaid span,
+        #mermaid-container .mermaid .nodeLabel,
+        #mermaid-container .mermaid .label,
+        #mermaid-container .mermaid .edgeLabel,
+        #mermaid-container .mermaid tspan,
+        #mermaid-container .mermaid p,
+        #mermaid-container .mermaid foreignObject div {{
+            color: #e2e8f0 !important;
+            fill: #e2e8f0 !important;
+        }}
+        /* Ensure no fully black backgrounds */
+        #mermaid-container .mermaid rect,
+        #mermaid-container .mermaid circle,
+        #mermaid-container .mermaid polygon,
+        #mermaid-container .mermaid path.node {{
+            stroke: #3b82f6 !important;
+        }}
     </style>
 
     <div id="mermaid-container" onclick="openFullscreen()">
@@ -686,14 +704,29 @@ def render_mermaid(mermaid_code: str):
             startOnLoad: false,
             theme: 'dark',
             themeVariables: {{
-                primaryColor: '#10b981',
+                primaryColor: '#1e3a5f',
                 primaryTextColor: '#e2e8f0',
                 primaryBorderColor: '#3b82f6',
                 lineColor: '#94a3b8',
-                secondaryColor: '#1a2235',
-                tertiaryColor: '#0f172a',
+                secondaryColor: '#1a3350',
+                secondaryTextColor: '#e2e8f0',
+                tertiaryColor: '#1e293b',
+                tertiaryTextColor: '#e2e8f0',
+                noteBkgColor: '#1e293b',
+                noteTextColor: '#e2e8f0',
+                textColor: '#e2e8f0',
+                mainBkg: '#1e3a5f',
+                nodeBkg: '#1e3a5f',
+                nodeBorder: '#3b82f6',
+                clusterBkg: '#0f172a',
+                clusterBorder: '#2a3a52',
+                titleColor: '#e2e8f0',
+                edgeLabelBackground: '#0f172a',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '14px'
+            }},
+            mindmap: {{
+                useMaxWidth: true
             }}
         }});
         try {{
@@ -711,6 +744,7 @@ def render_mermaid(mermaid_code: str):
 <html><head><title>Diagram</title><style>
     body {{ margin:0; background:#0f172a; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; box-sizing:border-box; }}
     svg {{ max-width:95vw; max-height:95vh; }}
+    text, span, tspan, .nodeLabel, .label, .edgeLabel, p, foreignObject div {{ color:#e2e8f0 !important; fill:#e2e8f0 !important; }}
 </style></head><body>${{svgData}}</body></html>`;
             const blob = new Blob([html], {{type: 'text/html'}});
             const url = URL.createObjectURL(blob);
