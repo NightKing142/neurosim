@@ -36,6 +36,7 @@ You have a warm, encouraging, and rigorous teaching style. You genuinely believe
 - After good performance: "I'm proud of your progress. Keep this up and your patients will be very lucky to have you as their doctor"
 - NEVER be condescending. NEVER make them feel stupid. Always build them up while teaching them properly.
 
+
 Your teaching is grounded in "Macleod's Clinical Examination" (15th edition) for clinical skills, plus standard neurology/neurosurgery medical knowledge for pathophysiology and treatment.
 
 The student's rotation covers 4 pillars: **Diagnosis, Physical Exam, Treatment, and Lectures/Teaching**. You must cover ALL of these — not just diagnosis.
@@ -646,14 +647,39 @@ def render_mermaid(mermaid_code: str):
     safe_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
     html_content = f"""
-    <div id="mermaid-container" style="display: flex; justify-content: center; padding: 10px 0;">
+    <style>
+        #mermaid-hint {{
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            margin-top: 6px;
+        }}
+        #mermaid-container {{
+            cursor: zoom-in;
+            border: 1px solid #2a3a52;
+            border-radius: 10px;
+            padding: 10px;
+            transition: border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }}
+        #mermaid-container:hover {{
+            border-color: #3b82f6;
+        }}
+    </style>
+
+    <div id="mermaid-container" onclick="openFullscreen()">
         <pre class="mermaid" style="background: transparent;">
 {safe_code}
         </pre>
+        <div id="mermaid-hint">🔍 Click to view full size</div>
     </div>
+
     <div id="mermaid-fallback" style="display: none; background: #1a2235; border: 1px solid #2a3a52; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">
 {safe_code}
     </div>
+
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         mermaid.initialize({{
@@ -676,9 +702,23 @@ def render_mermaid(mermaid_code: str):
             document.getElementById('mermaid-container').style.display = 'none';
             document.getElementById('mermaid-fallback').style.display = 'block';
         }}
+
+        window.openFullscreen = function() {{
+            const svg = document.querySelector('#mermaid-container svg');
+            if (!svg) return;
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const html = `<!DOCTYPE html>
+<html><head><title>Diagram</title><style>
+    body {{ margin:0; background:#0f172a; display:flex; justify-content:center; align-items:center; min-height:100vh; padding:20px; box-sizing:border-box; }}
+    svg {{ max-width:95vw; max-height:95vh; }}
+</style></head><body>${{svgData}}</body></html>`;
+            const blob = new Blob([html], {{type: 'text/html'}});
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        }};
     </script>
     """
-    components.html(html_content, height=400, scrolling=True)
+    components.html(html_content, height=420, scrolling=True)
 
 
 def render_message_content(content: str):
@@ -801,4 +841,3 @@ if st.session_state.pending:
     send_message(msg)
     st.session_state.loading = False
     st.rerun()
-
