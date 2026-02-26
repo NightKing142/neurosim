@@ -509,7 +509,7 @@ def send_message(user_input: str):
         except Exception as e:
             err = str(e).lower()
             # Rate limit or quota exceeded → fall back to Groq
-            if "429" in err or "403" in err or "quota" in err or "rate" in err or "resource" in err or "permission" in err or "leaked" in err:
+            if any(x in err for x in ["429", "403", "400", "quota", "rate", "resource", "permission", "leaked", "expired", "invalid"]):
                 if st.session_state.groq_key:
                     st.session_state.provider = "groq"
                     # Remove the history entry we just added to Gemini
@@ -694,3 +694,4 @@ if st.session_state.pending:
     send_message(msg)
     st.session_state.loading = False
     st.rerun()
+
