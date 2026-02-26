@@ -5,10 +5,10 @@ import re
 from google import genai
 
 # ===== CONFIG =====
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
+GEMINI_API_KEY = "AIzaSyA6EcV9vQS4H9xwwvY1yrDS3mWM1UIFuMc"
 GEMINI_MODEL = "gemini-2.5-flash"
 
-GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
+GROQ_API_KEY = "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"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
@@ -509,7 +509,7 @@ def send_message(user_input: str):
         except Exception as e:
             err = str(e).lower()
             # Rate limit or quota exceeded → fall back to Groq
-            if "429" in err or "quota" in err or "rate" in err or "resource" in err:
+            if "429" in err or "403" in err or "quota" in err or "rate" in err or "resource" in err or "permission" in err or "leaked" in err:
                 if st.session_state.groq_key:
                     st.session_state.provider = "groq"
                     # Remove the history entry we just added to Gemini
@@ -544,29 +544,49 @@ def send_message(user_input: str):
 
 
 def render_mermaid(mermaid_code: str):
-    """Render a Mermaid diagram using mermaid.js CDN."""
+    """Render a Mermaid diagram with error fallback."""
+    # Sanitize common AI mistakes
+    mermaid_code = mermaid_code.strip()
+    # Fix smart quotes
+    mermaid_code = mermaid_code.replace('"', '"').replace('"', '"')
+    mermaid_code = mermaid_code.replace("'", "'").replace("'", "'")
+    # Remove any leading/trailing backticks the AI might have added
+    mermaid_code = mermaid_code.strip('`').strip()
+
+    # Escape for safe HTML embedding
+    safe_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
     html_content = f"""
-    <div style="display: flex; justify-content: center; padding: 10px 0;">
+    <div id="mermaid-container" style="display: flex; justify-content: center; padding: 10px 0;">
         <pre class="mermaid" style="background: transparent;">
-{mermaid_code}
+{safe_code}
         </pre>
+    </div>
+    <div id="mermaid-fallback" style="display: none; background: #1a2235; border: 1px solid #2a3a52; border-radius: 8px; padding: 12px; font-family: monospace; font-size: 13px; color: #94a3b8; white-space: pre-wrap;">
+{safe_code}
     </div>
     <script type="module">
         import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
         mermaid.initialize({{
-            startOnLoad: true,
+            startOnLoad: false,
             theme: 'dark',
             themeVariables: {{
-                primaryColor: '#7c3aed',
-                primaryTextColor: '#f5e6d3',
-                primaryBorderColor: '#9b6dff',
-                lineColor: '#b8a9c9',
-                secondaryColor: '#3d2a5c',
-                tertiaryColor: '#1a1229',
+                primaryColor: '#10b981',
+                primaryTextColor: '#e2e8f0',
+                primaryBorderColor: '#3b82f6',
+                lineColor: '#94a3b8',
+                secondaryColor: '#1a2235',
+                tertiaryColor: '#0f172a',
                 fontFamily: 'DM Sans, sans-serif',
                 fontSize: '14px'
             }}
         }});
+        try {{
+            await mermaid.run();
+        }} catch (e) {{
+            document.getElementById('mermaid-container').style.display = 'none';
+            document.getElementById('mermaid-fallback').style.display = 'block';
+        }}
     </script>
     """
     components.html(html_content, height=400, scrolling=True)
@@ -673,5 +693,4 @@ if st.session_state.pending:
     st.session_state.pending = None
     send_message(msg)
     st.session_state.loading = False
-
     st.rerun()
