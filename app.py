@@ -553,10 +553,19 @@ def render_mermaid(mermaid_code: str):
     # Sanitize common AI mistakes
     mermaid_code = mermaid_code.strip()
     # Fix smart quotes
-    mermaid_code = mermaid_code.replace('"', '"').replace('"', '"')
-    mermaid_code = mermaid_code.replace("'", "'").replace("'", "'")
+    mermaid_code = mermaid_code.replace('\u201c', '"').replace('\u201d', '"')
+    mermaid_code = mermaid_code.replace('\u2018', "'").replace('\u2019', "'")
     # Remove any leading/trailing backticks the AI might have added
     mermaid_code = mermaid_code.strip('`').strip()
+    # Fix parentheses inside square bracket labels — mermaid treats () as node shape
+    # Turn A[Text (with parens)] into A["Text (with parens)"]
+    def quote_label(m):
+        content = m.group(1)
+        if '(' in content or ')' in content:
+            content = content.replace('"', "'")
+            return f'["{content}"]'
+        return m.group(0)
+    mermaid_code = re.sub(r'\[([^\]"]+)\]', quote_label, mermaid_code)
 
     # Escape for safe HTML embedding
     safe_code = mermaid_code.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
