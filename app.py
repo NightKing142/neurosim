@@ -821,7 +821,7 @@ LECTURE_TOPICS = [
 
 # ===== WELCOME SCREEN =====
 if not st.session_state.messages:
-    st.markdown("### 🩺 Welcome to NeuroSim")
+    st.markdown("### 🩺 Welcome to NeuroSim, Future Dr. Dima!")
     st.markdown(
         "Practice your full clinical rotation with an AI attending: "
         "**Diagnosis → Physical Exam → Pathophysiology → Treatment**. "
@@ -910,3 +910,4 @@ if st.session_state.pending:
     send_message(msg)
     st.session_state.loading = False
     st.rerun()
+
