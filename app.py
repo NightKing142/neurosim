@@ -1,6 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 import requests
+import random
 import re
 from google import genai
 
@@ -367,6 +368,8 @@ if "loading" not in st.session_state:
     st.session_state.loading = False
 if "pending" not in st.session_state:
     st.session_state.pending = None
+if "mode" not in st.session_state:
+    st.session_state.mode = None  # "case", "lecture", "quiz", or None
 if "provider" not in st.session_state:
     st.session_state.provider = "gemini"  # "gemini" or "groq"
 if "groq_key" not in st.session_state:
@@ -391,6 +394,7 @@ with col_back:
             st.session_state.history = []
             st.session_state.pending = None
             st.session_state.loading = False
+            st.session_state.mode = None
             st.rerun()
 
 st.divider()
@@ -432,6 +436,7 @@ with st.sidebar:
         st.session_state.pending = None
         st.session_state.loading = False
         st.session_state.provider = "gemini"
+        st.session_state.mode = None
         st.rerun()
     st.divider()
     st.markdown(
@@ -509,7 +514,7 @@ def send_message(user_input: str):
         except Exception as e:
             err = str(e).lower()
             # Rate limit or quota exceeded → fall back to Groq
-            if any(x in err for x in ["429", "403", "400", "quota", "rate", "resource", "permission", "leaked", "expired", "invalid"]):
+            if "429" in err or "403" in err or "quota" in err or "rate" in err or "resource" in err or "permission" in err or "leaked" in err:
                 if st.session_state.groq_key:
                     st.session_state.provider = "groq"
                     # Remove the history entry we just added to Gemini
@@ -608,6 +613,19 @@ def render_message_content(content: str):
             render_mermaid(part.strip())
 
 
+# ===== LECTURE TOPICS =====
+LECTURE_TOPICS = [
+    "ischaemic stroke", "haemorrhagic stroke", "TIA", "migraine", "tension headache",
+    "cluster headache", "subarachnoid haemorrhage", "epilepsy", "multiple sclerosis",
+    "Parkinson's disease", "Guillain-Barré syndrome", "myasthenia gravis",
+    "motor neuron disease", "peripheral neuropathy", "brain tumours",
+    "spinal cord compression", "cauda equina syndrome", "meningitis",
+    "encephalitis", "extradural haematoma", "subdural haematoma",
+    "Alzheimer's dementia", "Bell's palsy", "trigeminal neuralgia",
+    "cerebellar syndromes", "raised intracranial pressure", "carpal tunnel syndrome",
+    "radiculopathy", "essential tremor", "status epilepticus",
+]
+
 # ===== WELCOME SCREEN =====
 if not st.session_state.messages:
     st.markdown("### 🩺 Welcome to NeuroSim")
@@ -618,31 +636,34 @@ if not st.session_state.messages:
         "Based on **Macleod's Clinical Examination**."
     )
 
-    if st.session_state.loading:
-        st.info("🧠 Thinking... please wait.")
-    else:
+    if not st.session_state.loading:
         st.markdown("**Quick start:**")
         cols = st.columns(2)
         with cols[0]:
             if st.button("🏥 New Case (full rotation)", use_container_width=True):
                 st.session_state.pending = "New case please — take me through the full rotation: diagnosis, exam, pathophysiology, and treatment"
+                st.session_state.mode = "case"
                 st.session_state.loading = True
                 st.rerun()
         with cols[1]:
             if st.button("🔥 Hard Case", use_container_width=True):
                 st.session_state.pending = "Give me a difficult case"
+                st.session_state.mode = "case"
                 st.session_state.loading = True
                 st.rerun()
 
         cols2 = st.columns(2)
         with cols2[0]:
             if st.button("📖 Lecture Mode", use_container_width=True):
-                st.session_state.pending = "Give me a lecture on stroke — cover everything: definition, pathophysiology, clinical presentation, examination findings, investigations, treatment, and prognosis. Include mermaid diagrams for the pathophysiology pathway and treatment algorithm."
+                topic = random.choice(LECTURE_TOPICS)
+                st.session_state.pending = f"Give me a lecture on {topic} — cover everything: definition, epidemiology, pathophysiology, clinical presentation, examination findings, investigations, treatment, and prognosis. Include mermaid diagrams for the pathophysiology pathway and treatment algorithm."
+                st.session_state.mode = "lecture"
                 st.session_state.loading = True
                 st.rerun()
         with cols2[1]:
             if st.button("❓ Quiz Me", use_container_width=True):
                 st.session_state.pending = "Quiz me — mix diagnosis, pathophysiology, and treatment questions"
+                st.session_state.mode = "quiz"
                 st.session_state.loading = True
                 st.rerun()
 
@@ -661,25 +682,27 @@ for msg in st.session_state.messages:
 
 
 # ===== CHAT INPUT =====
-if st.session_state.messages and not st.session_state.loading:
-    hint_col, answer_col, skip_col = st.columns(3)
-    with hint_col:
-        if st.button("💡 Give me a hint", use_container_width=True):
-            st.session_state.pending = "I'm stuck. Give me a hint — point me in the right direction without giving the full answer."
-            st.session_state.loading = True
-            st.rerun()
-    with answer_col:
-        if st.button("🎯 Reveal the answer", use_container_width=True):
-            st.session_state.pending = "I give up. Reveal the full answer — diagnosis, pathophysiology, and treatment. Then score me on what I did so far."
-            st.session_state.loading = True
-            st.rerun()
-    with skip_col:
-        if st.button("⏭️ Next Case", use_container_width=True):
-            st.session_state.pending = "Let's skip this one. Give me a new case."
-            st.session_state.loading = True
-            st.rerun()
-elif st.session_state.loading:
+if st.session_state.loading:
     st.info("🧠 Thinking... please wait.")
+elif st.session_state.messages:
+    # Only show hint/reveal/skip in case mode
+    if st.session_state.mode == "case":
+        hint_col, answer_col, skip_col = st.columns(3)
+        with hint_col:
+            if st.button("💡 Give me a hint", use_container_width=True):
+                st.session_state.pending = "I'm stuck. Give me a hint — point me in the right direction without giving the full answer."
+                st.session_state.loading = True
+                st.rerun()
+        with answer_col:
+            if st.button("🎯 Reveal the answer", use_container_width=True):
+                st.session_state.pending = "I give up. Reveal the full answer — diagnosis, pathophysiology, and treatment. Then score me on what I did so far."
+                st.session_state.loading = True
+                st.rerun()
+        with skip_col:
+            if st.button("⏭️ Next Case", use_container_width=True):
+                st.session_state.pending = "Let's skip this one. Give me a new case."
+                st.session_state.loading = True
+                st.rerun()
 
 if not st.session_state.loading:
     if user_input := st.chat_input("Ask about a case, request a lecture, or answer the attending's questions..."):
@@ -694,4 +717,3 @@ if st.session_state.pending:
     send_message(msg)
     st.session_state.loading = False
     st.rerun()
-
